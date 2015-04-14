@@ -23,6 +23,7 @@ import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.elasticsearch.action.get.GetRequest
 import org.elasticsearch.action.get.GetResponse
 import org.elasticsearch.client.Client
+import org.elasticsearch.common.joda.time.DateTime
 import org.elasticsearch.common.xcontent.XContentBuilder
 import org.elasticsearch.search.SearchHit
 import org.elasticsearch.search.SearchHits
@@ -37,6 +38,7 @@ import org.springframework.beans.TypeConverter
 import org.springframework.util.Assert
 
 import java.beans.PropertyEditor
+import java.text.SimpleDateFormat
 
 /**
  * Domain class unmarshaller.
@@ -94,15 +96,34 @@ class DomainClassUnmarshaller {
                 }
             }
             new DatabindingApi().setProperties(instance, rebuiltProperties)
+            populateUnboundDateTimeProperties(instance, rebuiltProperties)
 
             results << instance
         }
         results
     }
 
-    private void populateCyclicReference(instance, Map<String, Object> rebuiltProperties, DefaultUnmarshallingContext unmarshallingContext) {
-        for (CycleReferenceSource cr : unmarshallingContext.cycleRefStack) {
-            populateProperty(cr.cyclePath, rebuiltProperties, resolvePath(cr.sourcePath, instance, rebuiltProperties))
+    private void populateUnboundDateTimeProperties(GroovyObject instance, Map<String, Object> rebuiltProperties){
+        for(Map.Entry<String, Object> entry: rebuiltProperties.entrySet()){
+
+            if(instance.hasProperty(entry.key) && !instance.getProperty(entry.key) && entry.value) {
+
+                if(instance.hasProperty(entry.key).type.simpleName == DateTime.simpleName){
+
+                    instance."${entry.key}" = Class.forName(instance.hasProperty(entry.key).type.canonicalName, true, getClass().classLoader).parse(entry.value)
+                    // the above hack is necessary because ElasticSearch has Joda classes under "org.elasticsearch..." package. So,
+                    // if we tried converting the string value into a DateTime using instance."${entry.key}" = DateTime.parse(entry.value),
+                    // we might run into trouble, since instance."${entry.key}" could evaluate to org.joda.DateTime, whereas
+                    // DateTime.parse(entry.value) could evaluate to org.elasticsearch.DateTime
+
+
+//                instance."${entry.key}" = DateTime.parse(entry.value)
+                    //          ^^org.joda... |  ^^org.elasticsearch....
+                }
+                else if(instance.hasProperty(entry.key).type == Date && entry.value instanceof Date){
+                    instance."${entry.key}" = entry.value
+                }
+            }
         }
     }
 
