@@ -115,10 +115,6 @@ class DomainClassUnmarshaller {
                     // if we tried converting the string value into a DateTime using instance."${entry.key}" = DateTime.parse(entry.value),
                     // we might run into trouble, since instance."${entry.key}" could evaluate to org.joda.DateTime, whereas
                     // DateTime.parse(entry.value) could evaluate to org.elasticsearch.DateTime
-
-
-//                instance."${entry.key}" = DateTime.parse(entry.value)
-                    //          ^^org.joda... |  ^^org.elasticsearch....
                 }
                 else if(instance.hasProperty(entry.key).type == Date && entry.value instanceof Date){
                     instance."${entry.key}" = entry.value
