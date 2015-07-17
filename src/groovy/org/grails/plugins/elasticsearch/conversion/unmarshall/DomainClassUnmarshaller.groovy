@@ -103,6 +103,12 @@ class DomainClassUnmarshaller {
         results
     }
 
+    private void populateCyclicReference(instance, Map<String, Object> rebuiltProperties, DefaultUnmarshallingContext unmarshallingContext) {
+        for (CycleReferenceSource cr : unmarshallingContext.cycleRefStack) {
+            populateProperty(cr.cyclePath, rebuiltProperties, resolvePath(cr.sourcePath, instance, rebuiltProperties))
+        }
+    }
+
     private void populateUnboundDateTimeProperties(GroovyObject instance, Map<String, Object> rebuiltProperties){
         for(Map.Entry<String, Object> entry: rebuiltProperties.entrySet()){
 
