@@ -275,6 +275,8 @@ class IndexRequestQueue {
                 }
                 if (it.failed) {
                     LOG.error("Failed bulk item: $it.failureMessage")
+                    toIndex.remove(key)
+                    toDelete.remove(key)
                 }
             }
             if (!toIndex.isEmpty() || !toDelete.isEmpty()) {
