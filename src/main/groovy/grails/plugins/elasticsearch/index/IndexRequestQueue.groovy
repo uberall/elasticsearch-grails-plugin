@@ -274,7 +274,15 @@ class IndexRequestQueue {
                     toDelete.remove(key)
                 }
                 if (it.failed) {
-                    LOG.error("Failed bulk item: $it.failureMessage")
+                    Class<?> entityClass = elasticSearchContextHolder.findMappedClassByElasticType(it.type)
+                    if (entityClass == null) {
+                        LOG.error("Elastic type [${it.type}] is not mapped.")
+                        return
+                    }
+                    LOG.error("Failed bulk item: $entityClass id: $it.id -> $it.failureMessage")
+                    IndexEntityKey key = new IndexEntityKey(it.id, entityClass)
+                    toIndex.remove(key)
+                    toDelete.remove(key)
                 }
             }
             if (!toIndex.isEmpty() || !toDelete.isEmpty()) {
