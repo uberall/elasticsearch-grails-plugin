@@ -9,6 +9,7 @@ Many thanks to all the users who reported issues and sent me pull requests.
 * https://github.com/skies[Sven Kiesewetter (Dating Cafe)]
 * Michael Schwartz (Dating Cafe)
 * https://github.com/puneetbehl[Puneet Behl]
+* https://github.com/bp-FLN[Florian Langenhahn]
 
 #### Authors and Contributors of the original plugin
 
@@ -21,4 +22,4 @@ Many thanks to all the users who reported issues and sent me pull requests.
 
 Graeme Rocher started the first draft which this plugin is based on.
 
-Get the full and updated list of contributors on the https://github.com/noamt/elasticsearch-grails-plugin/graphs/contributors[github] repository.
+Get the full and updated list of contributors on the https://github.com/uberall/elasticsearch-grails-plugin/graphs/contributors[github] repository.
