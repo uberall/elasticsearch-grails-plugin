@@ -51,12 +51,13 @@ class ElasticsearchGrailsPlugin extends Plugin {
             [name: 'Noam Y. Tenne', email: 'noam@10ne.org'],
             [name: 'Marcos Carceles', email: 'marcos.carceles@gmail.com'],
             [name: 'Puneet Behl', email: 'puneet.behl007@gmail.com'],
-            [name: 'James Kleeh', email: '	james.kleeh@gmail.com']
+            [name: 'James Kleeh', email: 'james.kleeh@gmail.com'],
+            [name: "Florian Langenhahn", email: "florian.langenhahn@uberall.com"]
     ]
 
-    def issueManagement = [system: 'github', url: 'https://github.com/noamt/elasticsearch-grails-plugin/issues']
+    def issueManagement = [system: 'github', url: 'https://github.com/uberall/elasticsearch-grails-plugin/issues']
 
-    def scm = [url: 'https://github.com/noamt/elasticsearch-grails-plugin']
+    def scm = [url: 'https://github.com/uberall/elasticsearch-grails-plugin']
 
     def author = 'Noam Y. Tenne'
     def authorEmail = 'noam@10ne.org'
