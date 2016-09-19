@@ -18,42 +18,20 @@ if (bintrayProperties.exists()) {
     developers = [noam: 'Noam Y. Tenne', marcos: 'Marcos Carceles', puneet: 'Puneet Behl', james: 'James Kleeh']
   }
 } else {
-    grailsPublish {
-    githubSlug = 'noamt/elasticsearch-grails-plugin'
+  grailsPublish {
+    user = System.getenv("BINTRAY_USER") ?: project.hasProperty("bintrayUser") ? project.bintrayUser : ''
+    key = System.getenv("BINTRAY_KEY") ?: project.hasProperty("bintrayKey") ? project.bintrayKey : ''
+    userOrg = 'uberall'
+    githubSlug = 'uberall/elasticsearch-grails-plugin'
+    websiteUrl = 'https://github.com/uberall/elasticsearch-grails-plugin'
+    issueTrackerUrl = 'https://github.com/uberall/elasticsearch-grails-plugin/issues'
+    vcsUrl = 'https://github.com/uberall/elasticsearch-grails-plugin'
     license {
-        name = 'Apache-2.0'
+      name = 'Apache-2.0'
     }
     title = "Elasticserach"
     desc = "An Elasticsearch plugin for Grails"
-    developers = [noam: 'Noam Y. Tenne', marcos: 'Marcos Carceles', puneet: 'Puneet Behl', james: 'James Kleeh']
-  }
+    developers = [noam: 'Noam Y. Tenne', macrcos: 'Marcos Carceles', puneet: 'Puneet Behl', james: 'James Kleeh',
+                    "bp-FLN": "Florian Langenhahn"]
 }
-
-// Publish gh-pages on github
-apply plugin: "org.ajoberstar.github-pages"
-
-File githubProperties = project.rootProject.file('github.properties')
-if (githubProperties.exists()) {
-  Properties properties = new Properties()
-  properties.load(githubProperties.newDataInputStream())
-
-  ext {
-    githubApiKey = properties.githubApiKey
-  }
-
-  githubPages {
-    repoUri = 'https://github.com/noamt/elasticsearch-grails-plugin.git'
-
-    credentials {
-      username = project.hasProperty('githubApiKey') ? project.githubApiKey : ''
-      password = ''
-    }
-
-    pages {
-      from "${buildDir}/docs"
-    }
-  }
-
-  task publishDocs(dependsOn: [docs, publishGhPages]) << {
-  }
 }
