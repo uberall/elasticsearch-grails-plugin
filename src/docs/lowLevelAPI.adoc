@@ -7,8 +7,8 @@ Simply encapsulate your code within a `withElasticSearch` bloc, and you will get
 
 [source, groovy]
 ----
+@Transactional
 class MySearchService {
-    static transactional = true
 
     def elasticSearchHelper
 

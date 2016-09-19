@@ -50,8 +50,6 @@ class ElasticSearchService implements GrailsApplicationAware {
     ElasticSearchContextHolder elasticSearchContextHolder
     IndexRequestQueue indexRequestQueue
 
-    static transactional = false
-
     /**
      * Global search using Query DSL builder.
      *
