@@ -14,7 +14,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.2"
+    id "com.jfrog.bintray" version "1.7"
 }
 
 version "1.0.0.2-ub"
@@ -99,7 +99,3 @@ task cleanDataDir(type: Delete) {
 apply from: "gradle/documentation.gradle"
 
 apply from: "gradle/publish.gradle"
-
-
-
-
