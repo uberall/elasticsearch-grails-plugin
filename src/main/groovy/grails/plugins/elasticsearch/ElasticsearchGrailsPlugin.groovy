@@ -24,10 +24,8 @@ import grails.plugins.elasticsearch.mapping.SearchableClassMappingConfigurator
 import grails.plugins.elasticsearch.unwrap.DomainClassUnWrapperChain
 import grails.plugins.elasticsearch.unwrap.HibernateProxyUnWrapper
 import grails.plugins.elasticsearch.util.DomainDynamicMethodsUtils
-import grails.util.Environment
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.core.env.MapPropertySource
 
 class ElasticsearchGrailsPlugin extends Plugin {
 
