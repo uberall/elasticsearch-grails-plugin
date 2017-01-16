@@ -17,11 +17,8 @@ plugins {
     id "com.jfrog.bintray" version "1.7"
 }
 
-<<<<<<< HEAD
 version "1.0.0.2-ub"
-=======
 version "1.2.1-ub"
->>>>>>> noamt-master
 group "org.grails.plugins"
 
 apply plugin: 'maven-publish'
@@ -34,11 +31,7 @@ apply plugin: "org.grails.grails-gsp"
 ext {
     grailsVersion = project.grailsVersion
     gradleWrapperVersion = project.gradleWrapperVersion
-<<<<<<< HEAD
-	elasticsearchVersion = "1.0.0.2-ub"
-=======
 	elasticsearchVersion = "2.3.3"
->>>>>>> noamt-master
 }
 
 sourceCompatibility = 1.7
