@@ -1,7 +1,7 @@
 package test.upperCase
 
 class UpperCase {
-    def name;
+    String name
     static mapping = {
 
         autoImport(false)

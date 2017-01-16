@@ -10,7 +10,8 @@ It is important to highlight that not all type mapping changes will result on a 
 The migration strategy is defined by the `elasticSearch.migration.strategy` configuration property and it accepts three values:
 
 - `'none'`
-- `'delete'`
+- `'deleteIndex'`
+- [line-through]#`'delete'` is no longer supported since the upgrade to Elasticsearch > 2.0#
 - `'alias'`
 
 The default strategy is `'alias'` as it is the only strategy that can achieve zero-downtime migrations and thus http://www.elasticsearch.org/blog/changing-mapping-with-zero-downtime/[recommended by Elasticsearch]
@@ -24,12 +25,12 @@ It will be responsibility for the application administrator to manually fix the 
 
 This configuration was left as a backwards compatibility and it will prevent the application from booting successfully, therefore we *discourage teams from using this option*.
 
-==== Migration Strategy 'delete'
+==== Migration Strategy 'deleteIndex'
 
-When choosing this option, when a conflict occurs installing  mapping, the application will delete the existing mapping for the type, alongside with all content indexed on that index and type and recreated the mapping. There are a couple of important details on this information:
+When choosing this option, when a conflict occurs installing  mapping, the application will delete the existing index for the type, *alongside with all content indexed on that index (including content from other mappings)* and it will recreate the index and all its mappings. There are a couple of important details on this information:
 
-- Only documents indexed on the conflicting mapping will be deleted, any other document on a different mapping on the same (or other) index will remain untouched.
 - Deleted documents can be automatically reindexed on startup by using the `elasticSearch.bulkIndexOnStartup` configuration property (See below)
+- New indices will be created with a version number and the right aliases, to make them compatible with potential future 'alias' migrations (without requiring additional index deletions)
 - Using this configuration there will always be a time window (between deletion and reindexation) where documents can't be found by search, therefore this option cannot achieve a *zero-downtime* deployment
 
 See <<Dealing with deleted content>> below for more details on automatic indexing.

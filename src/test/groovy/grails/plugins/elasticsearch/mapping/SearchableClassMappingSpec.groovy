@@ -2,14 +2,12 @@ package grails.plugins.elasticsearch.mapping
 
 import grails.core.GrailsApplication
 import grails.core.GrailsDomainClass
+import grails.plugins.elasticsearch.util.IndexNamingUtils
 import grails.test.mixin.Mock
 import org.grails.core.DefaultGrailsDomainClass
 import spock.lang.Specification
 import test.Photo
 import test.upperCase.UpperCase
-
-import static grails.plugins.elasticsearch.mapping.SearchableClassMapping.READ_SUFFIX
-import static grails.plugins.elasticsearch.mapping.SearchableClassMapping.WRITE_SUFFIX
 
 @Mock([Photo, UpperCase])
 class SearchableClassMappingSpec extends Specification {
@@ -24,8 +22,8 @@ class SearchableClassMappingSpec extends Specification {
 
         then:
         scm.indexName == packageName
-        scm.queryingIndex == packageName + READ_SUFFIX
-        scm.indexingIndex == packageName + WRITE_SUFFIX
+        scm.queryingIndex == IndexNamingUtils.queryingIndexFor(packageName)
+        scm.indexingIndex == IndexNamingUtils.indexingIndexFor(packageName)
         scm.queryingIndex != scm.indexingIndex
         scm.indexName != scm.queryingIndex
         scm.indexName != scm.indexingIndex

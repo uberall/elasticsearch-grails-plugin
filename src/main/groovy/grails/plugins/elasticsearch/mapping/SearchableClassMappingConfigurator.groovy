@@ -16,6 +16,9 @@
 
 package grails.plugins.elasticsearch.mapping
 
+import grails.plugins.elasticsearch.util.ElasticSearchConfigAware
+import groovy.transform.CompileStatic
+import org.elasticsearch.cluster.health.ClusterHealthStatus
 import org.grails.core.artefact.DomainClassArtefactHandler
 import grails.core.GrailsApplication
 import grails.core.GrailsClass
@@ -28,20 +31,22 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static grails.plugins.elasticsearch.mapping.MappingMigrationStrategy.*
+import static grails.plugins.elasticsearch.util.IndexNamingUtils.indexingIndexFor
+import static grails.plugins.elasticsearch.util.IndexNamingUtils.queryingIndexFor
 
 /**
  * Build searchable mappings, configure ElasticSearch indexes,
  * build and install ElasticSearch mappings.
  */
-class SearchableClassMappingConfigurator {
+@CompileStatic
+class SearchableClassMappingConfigurator implements ElasticSearchConfigAware {
 
     private static final Logger LOG = LoggerFactory.getLogger(this)
 
-    private ElasticSearchContextHolder elasticSearchContext
-    private GrailsApplication grailsApplication
-    private ElasticSearchAdminService es
-    private MappingMigrationManager mmm
-    private ConfigObject config
+    ElasticSearchContextHolder elasticSearchContext
+    GrailsApplication grailsApplication
+    ElasticSearchAdminService es
+    MappingMigrationManager mmm
 
     /**
      * Init method.
@@ -53,7 +58,6 @@ class SearchableClassMappingConfigurator {
 
     public Collection<SearchableClassMapping> mappings() {
         // TODO: Not able to reflect changes in config if we use instance field config in SearchableDomainClassMapper constructor
-        ConfigObject esConfig = grailsApplication.config.elasticSearch
         List<SearchableClassMapping> mappings = []
         for (GrailsClass clazz : grailsApplication.getArtefacts(DomainClassArtefactHandler.TYPE)) {
             GrailsDomainClass domainClass = (GrailsDomainClass) clazz
@@ -88,8 +92,7 @@ class SearchableClassMappingConfigurator {
      * @param mappings searchable class mappings to be install.
      */
     public void installMappings(Collection<SearchableClassMapping> mappings){
-        Map esConfig = grailsApplication.config.elasticSearch
-        Map<String, Object> indexSettings = buildIndexSettings(esConfig)
+        Map<String, Object> indexSettings = buildIndexSettings()
 
         LOG.debug("Index settings are " + indexSettings)
         
@@ -97,35 +100,54 @@ class SearchableClassMappingConfigurator {
         Map<SearchableClassMapping, Map> elasticMappings = buildElasticMappings(mappings)
         LOG.debug "elasticMappings are ${elasticMappings.keySet()}"
 
-        MappingMigrationStrategy migrationStrategy = esConfig?.migration?.strategy ? MappingMigrationStrategy.valueOf(esConfig.migration.strategy) : none
-        Set<String> installedIndices = []
+        MappingMigrationStrategy migrationStrategy = migrationConfig?.strategy ? MappingMigrationStrategy.valueOf(migrationConfig?.strategy as String) : none
         def mappingConflicts = []
-        for (SearchableClassMapping scm : mappings) {
-            if (scm.isRoot()) {
 
-                Map elasticMapping = elasticMappings[scm]
+        Set<String> indices = mappings.findAll { it.isRoot() }.collect { it.indexName } as Set<String>
 
-                // todo wait for success, maybe retry.
-                // If the index was not created, create it
-                if (!installedIndices.contains(scm.indexName)) {
+        //Install the mappings for each index all together
+        indices.each { String indexName ->
+
+            List<SearchableClassMapping> indexMappings = mappings.findAll { it.indexName == indexName && it.isRoot() } as List<SearchableClassMapping>
+            Map<String, Map> esMappings = indexMappings.collectEntries { [(it.elasticTypeName) : elasticMappings[it]] }
+
+            //If the index does not exist we attempt to create all the mappings at once with it
+            if(!es.indexExists(indexName)) {
+                try {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Creating index [" + indexName + "] => with new mappings:")
+                        esMappings.each {String type, Map esMapping ->
+                            LOG.debug("\t\tMapping ["+ type +"] => " + esMapping)
+                        }
+                    }
+                    createIndexWithMappings(indexName,  migrationStrategy, esMappings, indexSettings)
+                } catch (RemoteTransportException rte) {
+                    LOG.debug(rte.getMessage())
+                }
+            } else { //We install the mappings one by one
+                indexMappings.each { SearchableClassMapping scm ->
+                    Map elasticMapping = elasticMappings[scm]
+                    // Install mapping
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Installing mapping [" + scm.elasticTypeName + "] => " + elasticMapping)
+                    }
                     try {
-                        createIndexWithReadAndWrite(migrationStrategy, scm, indexSettings)
-                        installedIndices.add(scm.indexName)
-                    } catch (RemoteTransportException rte) {
-                        LOG.debug(rte.getMessage())
+                        es.createMapping scm.indexName, scm.elasticTypeName, elasticMapping
+                    } catch (IllegalArgumentException e) {
+                        LOG.warn("Could not install mapping ${scm.indexName}/${scm.elasticTypeName} due to ${e.message}, migrations needed")
+                        mappingConflicts << new MappingConflict(scm: scm, exception: e)
+                    } catch (MergeMappingException e) {
+                        LOG.warn("Could not install mapping ${scm.indexName}/${scm.elasticTypeName} due to ${e.message}, migrations needed")
+                        mappingConflicts << new MappingConflict(scm: scm, exception: e)
                     }
                 }
-
-                // Install mapping
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Installing mapping [" + scm.elasticTypeName + "] => " + elasticMapping)
-                }
-                try {
-                    es.createMapping scm.indexName, scm.elasticTypeName, elasticMapping
-                } catch (MergeMappingException e) {
-                    LOG.warn("Could not install mapping ${scm.indexName}/${scm.elasticTypeName} due to ${e.message}, migrations needed")
-                    mappingConflicts << new MappingConflict(scm: scm, exception: e)
-                }
+            }
+            //Create them only if they don't exist so it does not mess with other migrations
+            String queryingIndex = queryingIndexFor(indexName)
+            String indexingIndex = indexingIndexFor(indexName)
+            if(!es.aliasExists(queryingIndex)) {
+                es.pointAliasTo(queryingIndex, indexName)
+                es.pointAliasTo(indexingIndex, indexName)
             }
         }
         if(mappingConflicts) {
@@ -133,42 +155,36 @@ class SearchableClassMappingConfigurator {
             mmm.applyMigrations(migrationStrategy, elasticMappings, mappingConflicts, indexSettings)
         }
 
-        es.waitForClusterYellowStatus()
+        es.waitForClusterStatus(ClusterHealthStatus.YELLOW)
     }
 
 
     /**
      * Creates the Elasticsearch index once unblocked and its read and write aliases
      * @param indexName
-     * @returns true if it created a new index, false if it already existed
      * @throws RemoteTransportException if some other error occured
      */
-    private boolean createIndexWithReadAndWrite(MappingMigrationStrategy strategy, SearchableClassMapping scm, Map indexSettings) throws RemoteTransportException {
-        // Could be blocked on index level, thus wait.
-        es.waitForIndex(scm.indexName)
-        if(!es.indexExists(scm.indexName)) {
-            LOG.debug("Index ${scm.indexName} does not exists, initiating creation...")
+    private void createIndexWithMappings(String indexName, MappingMigrationStrategy strategy, Map<String, Map> esMappings, Map indexSettings) throws RemoteTransportException {
+        // Could be blocked on cluster level, thus wait.
+        es.waitForClusterStatus(ClusterHealthStatus.YELLOW)
+        if(!es.indexExists(indexName)) {
+            LOG.debug("Index ${indexName} does not exists, initiating creation...")
             if (strategy == alias) {
-                def nextVersion = es.getNextVersion scm.indexName
-                es.createIndex scm.indexName, nextVersion, indexSettings
-                es.pointAliasTo scm.indexName, scm.indexName, nextVersion
+                def nextVersion = es.getNextVersion indexName
+                es.createIndex indexName, nextVersion, indexSettings, esMappings
+                es.pointAliasTo indexName, indexName, nextVersion
             } else {
-                es.createIndex scm.indexName, indexSettings
+                es.createIndex indexName, indexSettings, esMappings
             }
-        }
-        //Create them only if they don't exist so it does not mess with other migrations
-        if(!es.aliasExists(scm.queryingIndex)) {
-            es.pointAliasTo(scm.queryingIndex, scm.indexName)
-            es.pointAliasTo(scm.indexingIndex, scm.indexName)
         }
     }
 
-    private Map<String, Object> buildIndexSettings(Map esConfig) {
+    private Map<String, Object> buildIndexSettings() {
         Map<String, Object> indexSettings = new HashMap<String, Object>()
         indexSettings.put("number_of_replicas", numberOfReplicas())
         // Look for default index settings.
         if (esConfig != null) {
-            Map<String, Object> indexDefaults = esConfig.get("index")
+            Map<String, Object> indexDefaults = esConfig.get("index") as Map<String, Object>
             LOG.debug("Retrieved index settings")
             if (indexDefaults != null) {
                 for (Map.Entry<String, Object> entry : indexDefaults.entrySet()) {
@@ -189,30 +205,11 @@ class SearchableClassMappingConfigurator {
         elasticMappings
     }
 
-    void setElasticSearchContext(ElasticSearchContextHolder elasticSearchContext) {
-        this.elasticSearchContext = elasticSearchContext
-    }
-
-    void setGrailsApplication(GrailsApplication grailsApplication) {
-        this.grailsApplication = grailsApplication
-    }
-
-    void setEs(ElasticSearchAdminService es) {
-        this.es = es
-    }
-
-    void setMmm(MappingMigrationManager mmm) {
-        this.mmm = mmm
-    }
-    void setConfig(ConfigObject config) {
-        this.config = config
-    }
-
     private int numberOfReplicas() {
-        def defaultNumber = elasticSearchContext.config.index.numberOfReplicas
+        def defaultNumber = (esConfig.index as ConfigObject).numberOfReplicas
         if (!defaultNumber) {
             return 0
         }
-        defaultNumber
+        defaultNumber as int
     }
 }

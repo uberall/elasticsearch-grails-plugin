@@ -2,6 +2,13 @@
 
 ==== Grails 3.x version
 
+* June 3, 2016
+** 1.2.0
+*** Upgraded to Elasticsearch 2.3.3
+**** Support for `elasticsearch-groovy` client removed (no available compatible version, pending on https://github.com/elastic/elasticsearch-groovy/issues/35[Issue 35])
+**** `delete` migration strategy has been replaced by `deleteIndex`, due to new Elasticsearch 2.x API's
+*** Removed test classes from plugin distribution
+
 * April 18, 2016
 ** 1.0.0.1
 *** Add ability to change search method name in domain class via config

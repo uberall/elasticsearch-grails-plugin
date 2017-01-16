@@ -16,11 +16,16 @@
 
 package grails.plugins.elasticsearch.mapping
 
+import grails.core.GrailsApplication
+import grails.plugins.elasticsearch.util.ElasticSearchConfigAware
+import grails.plugins.elasticsearch.util.IndexNamingUtils
 import grails.util.GrailsNameUtils
 import grails.core.GrailsDomainClass
 import grails.plugins.elasticsearch.ElasticSearchContextHolder
+import groovy.transform.CompileStatic
 
-class SearchableClassMapping {
+@CompileStatic
+class SearchableClassMapping implements ElasticSearchConfigAware {
 
     /** All searchable properties */
     private Collection<SearchableClassPropertyMapping> propertiesMapping
@@ -29,9 +34,6 @@ class SearchableClassMapping {
     /** Searchable root? */
     private boolean root = true
     protected all = true
-
-    public static final READ_SUFFIX = "_read"
-    public static final WRITE_SUFFIX = "_write"
 
     String indexName
 
@@ -82,7 +84,7 @@ class SearchableClassMapping {
     }
 
     String calculateIndexName() {
-        String name = domainClass.application?.config?.elasticSearch?.index?.name ?: domainClass.packageName
+        String name = esConfig?.getProperty('index.name') ?: domainClass.packageName
         if (name == null || name.length() == 0) {
             // index name must be lowercase (org.elasticsearch.indices.InvalidIndexNameException)
             name = domainClass.getPropertyName()
@@ -91,11 +93,11 @@ class SearchableClassMapping {
     }
 
     String getIndexingIndex() {
-        return indexName + WRITE_SUFFIX
+        return IndexNamingUtils.indexingIndexFor(indexName)
     }
 
     String getQueryingIndex() {
-        return indexName + READ_SUFFIX
+        return IndexNamingUtils.queryingIndexFor(indexName)
     }
 
     /**
@@ -109,7 +111,7 @@ class SearchableClassMapping {
         if (all instanceof Boolean) {
             return all
         } else if (all instanceof Map) {
-            return all.enabled instanceof Boolean ? all.enabled : true
+            return (all as Map).enabled instanceof Boolean ? (all as Map).enabled : true
         }
         return true
     }
@@ -119,4 +121,8 @@ class SearchableClassMapping {
         return "${getClass().name}(domainClass:$domainClass, propertiesMapping:$propertiesMapping, indexName:$indexName, isAll:${isAll()})"
     }
 
+    @Override
+    GrailsApplication getGrailsApplication() {
+        return domainClass.application
+    }
 }

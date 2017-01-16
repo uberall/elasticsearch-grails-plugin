@@ -8,6 +8,7 @@ Many thanks to all the users who reported issues and sent me pull requests.
 * https://github.com/stefanrother[Stefan Rother-Stübs (Dating Cafe)]
 * https://github.com/skies[Sven Kiesewetter (Dating Cafe)]
 * Michael Schwartz (Dating Cafe)
+* https://github.com/marcoscarceles[Marcos Carceles]
 * https://github.com/puneetbehl[Puneet Behl]
 * https://github.com/bp-FLN[Florian Langenhahn]
 

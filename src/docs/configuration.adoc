@@ -3,6 +3,16 @@
 
 The plugin provide a default configuration, but you may add your own settings in your *Config.groovy* for Grails 2.x and *application.groovy* or *application.yml* for Grails 3.x.
 
+=== Overriding Spring Boot elasticsearch version
+
+Spring Boot 1.3.x supports Elasticsearch 1.5.2 OOTB (https://github.com/spring-projects/spring-boot/blob/master/spring-boot-dependencies/pom.xml#L76) and will install dependencies for this version, if not explicitly overriden. To do so add the following to your `build.gradle`:
+
+[source, groovy]
+----
+def elasticsearchVersion = '2.3.3'
+ext['elasticsearch.version'] = elasticsearchVersion
+----
+
 === Client mode
 
 You can set the plugin in 3 different modes, detailed on the http://www.elasticsearch.org/guide/en/elasticsearch/client/java-api/current/[official ElasticSearch doc].
@@ -19,7 +29,7 @@ elasticSearch.client.mode = '<mode>'
 ----
 elasticSearch:
 	client:
-		node: <mode>
+		mode: <mode>
 ----
 
 .Possible values for client node
@@ -64,6 +74,32 @@ elasticSearch:
 ----
 
 If no host is defined, `localhost:9300` will be used by the transport client.
+
+==== Using node or dataNode during development
+
+If you configure your dev environment to use `node` or `dataNode` you might see the following exception:
+
+[source, groovy]
+----
+'elasticSearchClient': FactoryBean threw exception on object creation; nested exception is java.lang.IllegalStateException: path.home is not configured
+----
+
+In order to make this work you need to define `es.path.home` in VM options.
+
+[source, groovy]
+.Grails 2.x
+----
+grails run-app -Des.path.home=<PATH_TO_ELASTICSEARCH_HOME_DIR>
+----
+
+[source, groovy]
+.Grails 3.x (build.gradle)
+----
+bootRun {
+    jvmArgs = ['-Des.path.home=<PATH_TO_ELASTICSEARCH_HOME_DIR>']
+}
+----
+
 
 === Mapping Migration properties
 
@@ -282,7 +318,7 @@ More details on the possible values on the http://www.elasticsearch.org/guide/re
 | Value | Description
 
 | memory 
-| Stores the index in memory. Useful for testing.
+| Stores the index in memory. Useful for testing. *Please note* that it's not support in ES 2.0 and later versions.
 
 | mmapfs
 | Stores the shard index on the file system (maps to Lucene MMapDirectory) using mmap.

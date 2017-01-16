@@ -16,11 +16,34 @@ Edit your project's +build.gradle+ file, by adding the plugin's dependency decla
 ----
 dependencies {
     ...
-    compile "org.grails.plugins:elasticsearch:1.0.0.2"
+    compile "org.grails.plugins:elasticsearch:1.2.0"
     ...
 
 }
 ----
+
+
+=== Versioning
+
+|===
+|Plugin Version | Grails Version | Elasticsearch Version
+
+|1.2.0
+|3.1.y
+|2.3.z
+
+|1.0.0.x
+|3.1.y
+|1.6.z
+
+|0.1.0.x
+|2.y
+|2.1.z
+
+|0.0.4.x
+|2.y
+|1.6.z
+|===
 
 === Ohs Nos! I'm hitting a +java.lang.Exception: No datastore implementation specified+
 

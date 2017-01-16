@@ -20,15 +20,17 @@ import grails.core.GrailsDomainClassProperty
 import grails.plugins.GrailsPluginManager
 import grails.util.GrailsNameUtils
 import grails.util.Holders
+import groovy.transform.CompileStatic
 import org.springframework.util.ClassUtils
 
 /**
  * Build ElasticSearch class mapping based on attributes provided by closure.
  */
+@CompileStatic
 class ElasticSearchMappingFactory {
 
     private static final Set<String> SUPPORTED_FORMAT =
-            ['string', 'integer', 'long', 'float', 'double', 'boolean', 'null', 'date']
+            ['string', 'integer', 'long', 'float', 'double', 'boolean', 'null', 'date'] as Set<String>
 
     private static Class JODA_TIME_BASE
 
@@ -46,7 +48,7 @@ class ElasticSearchMappingFactory {
         Map mappingFields = [properties: getMappingProperties(scm)]
 
         if (scm.@all instanceof Map) {
-            mappingFields.'_all' = scm.@all
+            mappingFields.'_all' = scm.@all as Map
         }
         if (!scm.isAll())
             mappingFields.'_all' = Collections.singletonMap('enabled', false)
@@ -57,7 +59,7 @@ class ElasticSearchMappingFactory {
         }
 
         Map<String, Object> mapping = [:]
-        mapping."${scm.getElasticTypeName()}" = mappingFields
+        mapping.put("${scm.getElasticTypeName()}" as String,  mappingFields)
         mapping
     }
 
@@ -98,14 +100,14 @@ class ElasticSearchMappingFactory {
                         idType = 'string'
                     }
 
-                    props.id = defaultDescriptor(idType, 'not_analyzed', true)
-                    props.class = defaultDescriptor('string', 'no', true)
-                    props.ref = defaultDescriptor('string', 'no', true)
+                    props.put('id', defaultDescriptor(idType, 'not_analyzed', true))
+                    props.put('class', defaultDescriptor('string', 'no', true))
+                    props.put('ref', defaultDescriptor('string', 'no', true))
                 }
             }
             propOptions.type = propType
             // See http://www.elasticsearch.com/docs/elasticsearch/mapping/all_field/
-            if ((propType != 'object') && scm.isAll()) {
+            if (!(propType in ['object', 'attachment']) && scm.isAll()) {
                 // does it make sense to include objects into _all?
                 propOptions.include_in_all = !scpm.shouldExcludeFromAll()
             }
@@ -122,8 +124,8 @@ class ElasticSearchMappingFactory {
                 untouched.put('type', propOptions.get('type'))
                 untouched.put('index', 'not_analyzed')
 
-                Map<String, Map> fields = [untouched: untouched]
-                fields."${scpm.getPropertyName()}" = field
+                Map fields = [untouched: untouched]
+                fields.put("${scpm.getPropertyName()}" as String, field)
 
                 propOptions = [:]
                 propOptions.type = 'multi_field'
@@ -215,7 +217,7 @@ class ElasticSearchMappingFactory {
     }
 
     private static String treatValueAsAString(String idType) {
-        if (Holders.grailsApplication.config.elasticSearch.datastoreImpl =~ /mongo/) {
+        if ((Holders.grailsApplication.config.elasticSearch as ConfigObject).datastoreImpl =~ /mongo/) {
             idType = 'string'
         } else {
             def pluginManager = Holders.applicationContext.getBean(GrailsPluginManager.BEAN_NAME)

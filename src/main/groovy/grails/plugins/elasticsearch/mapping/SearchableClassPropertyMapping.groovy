@@ -17,16 +17,18 @@ package grails.plugins.elasticsearch.mapping
 
 import grails.core.GrailsDomainClassProperty
 import grails.plugins.elasticsearch.ElasticSearchContextHolder
+import groovy.transform.CompileStatic
 
 /**
  * Custom searchable property mapping.
  */
+@CompileStatic
 class SearchableClassPropertyMapping {
 
-    private static final Set<String> SEARCHABLE_MAPPING_OPTIONS = ['boost', 'index', 'analyzer']
+    private static final Set<String> SEARCHABLE_MAPPING_OPTIONS = ['boost', 'index', 'analyzer'] as Set<String>
     private static final Set<String> SEARCHABLE_SPECIAL_MAPPING_OPTIONS =
             ['component', 'converter', 'reference', 'excludeFromAll', 'maxDepth', 'multi_field', 'parent', 'geoPoint',
-             'alias', 'dynamic', 'attachment']
+             'alias', 'dynamic', 'attachment'] as Set<String>
 
     /** Grails attributes of this property */
     private GrailsDomainClassProperty grailsProperty
@@ -114,7 +116,7 @@ class SearchableClassPropertyMapping {
 
     int getMaxDepth() {
         Object maxDepth = specialMappingAttributes.maxDepth
-        maxDepth != null ? maxDepth : 0 as int
+        (maxDepth != null ? maxDepth : 0) as int
     }
 
     Class getBestGuessReferenceType() {

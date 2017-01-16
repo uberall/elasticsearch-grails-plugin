@@ -20,6 +20,7 @@ import grails.core.GrailsApplication
 import grails.core.GrailsDomainClass
 import grails.core.GrailsDomainClassProperty
 import grails.util.GrailsClassUtils
+import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.grails.core.DefaultGrailsDomainClass
@@ -28,6 +29,7 @@ import org.springframework.util.Assert
 
 import java.lang.reflect.Modifier
 
+@CompileStatic
 class SearchableDomainClassMapper extends GroovyObjectSupport {
     /**
      * Class mapping properties
@@ -144,7 +146,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
                     buildHashMapMapping((LinkedHashMap) searchable, domainClass, inheritedProperties)
                 } else if (searchable instanceof Closure) {
                     Set<String> inheritedProperties = getInheritedProperties(domainClass)
-                    buildClosureMapping(domainClass, (Closure) searchable, inheritedProperties)
+                    buildClosureMapping(domainClass, searchable as Closure, inheritedProperties)
                 } else {
                     throw new IllegalArgumentException("'$searchablePropertyName' property has unknown type: " + searchable.getClass())
                 }
@@ -280,7 +282,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
             return Collections.singleton(arg)
         }
         if (arg instanceof Object[]) {
-            return new HashSet<String>(Arrays.asList(arg))
+            return new HashSet<String>(Arrays.asList(arg as String[]))
         }
         if (arg instanceof Collection) {
             //noinspection unchecked
@@ -290,7 +292,7 @@ class SearchableDomainClassMapper extends GroovyObjectSupport {
     }
 
     private String getSearchablePropertyName() {
-        def searchablePropertyName = esConfig.searchableProperty.name
+        def searchablePropertyName = (esConfig.searchableProperty as ConfigObject).name
 
         //Maintain backwards compatibility. Searchable property name may not be defined
         if (!searchablePropertyName) {

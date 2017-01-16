@@ -3,7 +3,7 @@ package grails.plugins.elasticsearch.conversion.unmarshall
 import grails.test.mixin.integration.Integration
 import grails.core.GrailsApplication
 import org.elasticsearch.common.bytes.BytesArray
-import org.elasticsearch.common.text.StringAndBytesText
+import org.elasticsearch.common.text.Text
 import org.elasticsearch.search.internal.InternalSearchHit
 import org.elasticsearch.search.internal.InternalSearchHits
 import grails.plugins.elasticsearch.ElasticSearchContextHolder
@@ -32,7 +32,7 @@ class DomainClassUnmarshallerIntegrationSpec extends Specification {
         def unmarshaller = new DomainClassUnmarshaller(elasticSearchContextHolder: elasticSearchContextHolder, grailsApplication: grailsApplication)
 
         given: 'a search hit with a geo_point'
-        InternalSearchHit hit = new InternalSearchHit(1, '1', new StringAndBytesText('building'), [:])
+        InternalSearchHit hit = new InternalSearchHit(1, '1', new Text('building'), [:])
                 .sourceRef(new BytesArray('{"location":{"class":"test.GeoPoint","id":"2", "lat":53.0,"lon":10.0},"name":"WatchTower"}'))
         InternalSearchHit[] hits = [hit]
         def maxScore = 0.1534264087677002f
@@ -55,7 +55,7 @@ class DomainClassUnmarshallerIntegrationSpec extends Specification {
         def unmarshaller = new DomainClassUnmarshaller(elasticSearchContextHolder: elasticSearchContextHolder, grailsApplication: grailsApplication)
 
         given: 'a search hit with a color with unhandled properties r-g-b'
-        InternalSearchHit hit = new InternalSearchHit(1, '1', new StringAndBytesText('color'), [:])
+        InternalSearchHit hit = new InternalSearchHit(1, '1', new Text('color'), [:])
                 .sourceRef(new BytesArray('{"name":"Orange", "red":255, "green":153, "blue":0}'))
         InternalSearchHit[] hits = [hit]
         def maxScore = 0.1534264087677002f
@@ -85,7 +85,7 @@ class DomainClassUnmarshallerIntegrationSpec extends Specification {
         def unmarshaller = new DomainClassUnmarshaller(elasticSearchContextHolder: elasticSearchContextHolder, grailsApplication: grailsApplication)
 
         given: 'a search hit with a circle, within it a color with an unhandled properties "red"'
-        InternalSearchHit hit = new InternalSearchHit(1, '1', new StringAndBytesText('circle'), [:])
+        InternalSearchHit hit = new InternalSearchHit(1, '1', new Text('circle'), [:])
                 .sourceRef(new BytesArray('{"radius":7, "color":{"class":"test.Color", "id":"2", "name":"Orange", "red":255}}'))
         InternalSearchHit[] hits = [hit]
         def maxScore = 0.1534264087677002f

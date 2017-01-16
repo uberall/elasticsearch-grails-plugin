@@ -2,8 +2,6 @@ package grails.plugins.elasticsearch
 
 import grails.test.mixin.integration.Integration
 import grails.transaction.Rollback
-import org.elasticsearch.index.query.FilterBuilder
-import org.elasticsearch.index.query.FilterBuilders
 import org.elasticsearch.index.query.QueryBuilder
 import org.elasticsearch.index.query.QueryBuilders
 import org.springframework.beans.factory.annotation.Autowired
@@ -109,7 +107,7 @@ class DynamicMethodsIntegrationSpec extends Specification {
 
         when:
         QueryBuilder query = QueryBuilders.matchAllQuery()
-        FilterBuilder filter = FilterBuilders.termFilter("url", "http://www.nicenicejpg.com/100")
+        QueryBuilder filter = QueryBuilders.termQuery("url", "http://www.nicenicejpg.com/100")
         def results = Photo.search(query, filter)
 
         then:
@@ -117,14 +115,14 @@ class DynamicMethodsIntegrationSpec extends Specification {
         results.searchResults[0].name == "Captain Kirk"
     }
 
-    void "can search and filter using Dynamic Methods and a FilterBuilder"() {
+    void "can search and filter using Dynamic Methods and a QueryBuilder"() {
         given:
         elasticSearchAdminService.refresh()
         expect:
         elasticSearchService.search('Captain', [indices: Photo, types: Photo]).total == 5
 
         when:
-        FilterBuilder filter = FilterBuilders.termFilter("url", "http://www.nicenicejpg.com/100")
+        QueryBuilder filter = QueryBuilders.termQuery("url", "http://www.nicenicejpg.com/100")
         def results = Photo.search({
             match(name: "Captain")
         }, filter)

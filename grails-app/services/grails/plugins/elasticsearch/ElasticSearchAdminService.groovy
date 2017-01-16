@@ -7,11 +7,11 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest
-import org.elasticsearch.action.admin.indices.mapping.delete.DeleteMappingRequest
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest
-import org.elasticsearch.action.support.broadcast.BroadcastOperationResponse
+import org.elasticsearch.action.support.broadcast.BroadcastResponse
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.Requests
+import org.elasticsearch.cluster.health.ClusterHealthStatus
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -42,7 +42,7 @@ class ElasticSearchAdminService {
 
         // Refresh ES
         elasticSearchHelper.withElasticSearch { Client client ->
-            BroadcastOperationResponse response
+            BroadcastResponse response
             if (!indices) {
                 response = client.admin().indices().refresh(Requests.refreshRequest()).actionGet()
             } else {
@@ -134,21 +134,6 @@ class ElasticSearchAdminService {
     }
 
     /**
-     * Deletes a mapping on an index
-     * @param index The index the mapping will be deleted on
-     * @param type The type which mapping will be deleted
-     */
-    void deleteMapping(String index, String type) {
-        log.info("Deleting Elasticsearch mapping for ${index} and type ${type} ...")
-        elasticSearchHelper.withElasticSearch { Client client ->
-            client.admin().indices().deleteMapping(
-                    new DeleteMappingRequest(index).
-                            types(type)
-            ).actionGet()
-        }
-    }
-
-    /**
      * Creates mappings on a type
      * @param index The index where the mapping is being created
      * @param type The type where the mapping is created
@@ -166,7 +151,7 @@ class ElasticSearchAdminService {
     }
 
     /**
-     * Check whether a mpping exists
+     * Check whether a mapping exists
      * @param index The name of the index to check on
      * @param type The type which mapping is being checked
      * @return true if the mapping exists
@@ -195,13 +180,16 @@ class ElasticSearchAdminService {
      * @param index The name of the index
      * @param settings The index settings (ie. number of shards)
      */
-    void createIndex(String index, Map settings=null) {
+    void createIndex(String index, Map settings=null, Map<String, Map> esMappings = [:]) {
         LOG.debug "Creating index ${index} ..."
 
         elasticSearchHelper.withElasticSearch { Client client ->
             CreateIndexRequestBuilder builder = client.admin().indices().prepareCreate(index)
             if (settings) {
                 builder.setSettings(settings)
+            }
+            esMappings.each { String type, Map elasticMapping ->
+                builder.addMapping(type, elasticMapping)
             }
             builder.execute().actionGet()
         }
@@ -213,9 +201,9 @@ class ElasticSearchAdminService {
      * @param version the version number, if provided <index>_v<version> will be used
      * @param settings The index settings (ie. number of shards)
      */
-    void createIndex(String index, Integer version, Map settings=null) {
+    void createIndex(String index, Integer version, Map settings=null, Map<String, Map> esMappings = [:]) {
         index = versionIndex(index, version)
-        createIndex(index, settings)
+        createIndex(index, settings, esMappings)
     }
 
     /**
@@ -252,7 +240,7 @@ class ElasticSearchAdminService {
     String indexPointedBy(String alias) {
         elasticSearchHelper.withElasticSearch { Client client ->
             def index = client.admin().indices().getAliases(new GetAliasesRequest().aliases([alias] as String[])).actionGet().getAliases()?.find {
-                it.value.element.alias() == alias
+                alias in it.value*.alias()
             }?.key
             if (!index) {
                 LOG.debug("Alias ${alias} does not exist")
@@ -362,31 +350,11 @@ class ElasticSearchAdminService {
     }
 
     /**
-     * Waits for an index to be on Yellow status
-     * @param index
-     * @return
-     */
-    def waitForIndex(index) {
-        elasticSearchHelper.withElasticSearch { Client client ->
-            try {
-                LOG.debug("Waiting at least yellow status on ${index}")
-                client.admin().cluster().prepareHealth(index)
-                        .setWaitForYellowStatus()
-                        .execute().actionGet()
-            } catch (Exception e) {
-                // ignore any exceptions due to non-existing index.
-                LOG.debug('Index health', e)
-            }
-        }
-    }
-
-    /**
      * Waits for the cluster to be on Yellow status
      */
-    void waitForClusterYellowStatus() {
+    void waitForClusterStatus(ClusterHealthStatus status=ClusterHealthStatus.YELLOW) {
         elasticSearchHelper.withElasticSearch { Client client ->
-            ClusterHealthResponse response = client.admin().cluster().health(
-                    new ClusterHealthRequest([] as String[]).waitForYellowStatus()).actionGet()
+            ClusterHealthResponse response = client.admin().cluster().health(new ClusterHealthRequest([] as String[]).waitForStatus(status)).actionGet()
             LOG.debug("Cluster status: ${response.status}")
         }
     }

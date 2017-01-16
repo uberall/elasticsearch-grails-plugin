@@ -21,7 +21,6 @@ import grails.plugins.elasticsearch.ElasticSearchService
 import grails.plugins.elasticsearch.mapping.SearchableClassMapping
 import org.apache.commons.logging.LogFactory
 import grails.plugins.elasticsearch.exception.IndexException
-import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.index.query.QueryBuilder
 
 class DomainDynamicMethodsUtils {
@@ -91,10 +90,10 @@ class DomainDynamicMethodsUtils {
             domain.metaClass.'static'."$searchMethodName" << { QueryBuilder q, f = null, Map params = [:] ->
                 elasticSearchService.search(q, f, params + indexAndType)
             }
-			domain.metaClass.'static'."$searchMethodName" << { Map params, QueryBuilder q, FilterBuilder f ->
+			domain.metaClass.'static'."$searchMethodName" << { Map params, QueryBuilder q, QueryBuilder f ->
 				elasticSearchService.search(params + indexAndType, q, f)
 			}
-			domain.metaClass.'static'."$searchMethodName" << { QueryBuilder q, FilterBuilder f, Map params = [:] ->
+			domain.metaClass.'static'."$searchMethodName" << { QueryBuilder q, QueryBuilder f, Map params = [:] ->
 				elasticSearchService.search(q, f, params + indexAndType)
 			}
 
