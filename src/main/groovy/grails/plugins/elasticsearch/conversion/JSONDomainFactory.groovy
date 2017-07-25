@@ -58,45 +58,45 @@ class JSONDomainFactory {
         def marshaller
         def objectClass = object.getClass()
 
+        // Check if we arrived from searchable domain class.
+        def parentObject = marshallingContext.peekDomainObject()
+        if (parentObject && marshallingContext.lastParentPropertyName && DomainClassArtefactHandler.isDomainClass(parentObject.getClass())) {
+            GrailsDomainClass domainClass = getDomainClass(parentObject)
+            def propertyMapping = elasticSearchContextHolder.getMappingContext(domainClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+            def converter = propertyMapping?.converter
+            def customerMarshaller = propertyMapping?.customMarshaller
+            // Property has converter information. Lets see how we can apply it.
+            if (converter) {
+                // Property editor?
+                if (converter instanceof Class) {
+                    if (PropertyEditor.isAssignableFrom(converter)) {
+                        marshaller = new PropertyEditorMarshaller(propertyEditorClass: converter)
+                    }
+                }
+            } else if (customerMarshaller && customerMarshaller instanceof Class) {
+                marshaller = customerMarshaller.newInstance()
+            } else if (propertyMapping?.isDynamic()) {
+                marshaller = new DynamicValueMarshaller()
+            } else if (propertyMapping?.reference) {
+                def refClass = propertyMapping.getBestGuessReferenceType()
+                marshaller = new SearchableReferenceMarshaller(refClass: refClass)
+            } else if (propertyMapping?.component) {
+                if (propertyMapping?.isGeoPoint()) {
+                    marshaller = new GeoPointMarshaller()
+                } else {
+                    marshaller = new DeepDomainClassMarshaller()
+                }
+            }
+        }
+
         // Resolve collections.
         // Check for direct marshaller matching
-        if (object instanceof Collection) {
+        if (!marshaller && object instanceof Collection) {
             marshaller = new CollectionMarshaller()
         }
 
         if (!marshaller && DEFAULT_MARSHALLERS[objectClass]) {
             marshaller = DEFAULT_MARSHALLERS[objectClass].newInstance()
-        }
-
-        if (!marshaller) {
-
-            // Check if we arrived from searchable domain class.
-            def parentObject = marshallingContext.peekDomainObject()
-            if (parentObject && marshallingContext.lastParentPropertyName && DomainClassArtefactHandler.isDomainClass(parentObject.getClass())) {
-                GrailsDomainClass domainClass = getDomainClass(parentObject)
-                def propertyMapping = elasticSearchContextHolder.getMappingContext(domainClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
-                def converter = propertyMapping?.converter
-                // Property has converter information. Lets see how we can apply it.
-                if (converter) {
-                    // Property editor?
-                    if (converter instanceof Class) {
-                        if (PropertyEditor.isAssignableFrom(converter)) {
-                            marshaller = new PropertyEditorMarshaller(propertyEditorClass: converter)
-                        }
-                    }
-                } else if (propertyMapping?.isDynamic()) {
-                    marshaller = new DynamicValueMarshaller()
-                } else if (propertyMapping?.reference) {
-                    def refClass = propertyMapping.getBestGuessReferenceType()
-                    marshaller = new SearchableReferenceMarshaller(refClass: refClass)
-                } else if (propertyMapping?.component) {
-                    if (propertyMapping?.isGeoPoint()) {
-                        marshaller = new GeoPointMarshaller()
-                    } else {
-                        marshaller = new DeepDomainClassMarshaller()
-                    }
-                }
-            }
         }
 
         if (!marshaller) {
