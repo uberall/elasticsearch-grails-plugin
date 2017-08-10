@@ -55,16 +55,31 @@ class JSONDomainFactory {
         if (object == null) {
             return null
         }
-        def marshaller
+        def marshaller = null
         def objectClass = object.getClass()
 
         // Check if we arrived from searchable domain class.
         def parentObject = marshallingContext.peekDomainObject()
-        if (parentObject && marshallingContext.lastParentPropertyName && DomainClassArtefactHandler.isDomainClass(parentObject.getClass())) {
-            GrailsDomainClass domainClass = getDomainClass(parentObject)
-            def propertyMapping = elasticSearchContextHolder.getMappingContext(domainClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+        GrailsDomainClass domainClass = getDomainClass(parentObject)
+        def propertyMapping = elasticSearchContextHolder.getMappingContext(domainClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+        def customMarshaller = propertyMapping?.customMarshaller
+
+        if (customMarshaller && customMarshaller instanceof Class) {
+            marshaller = customMarshaller.newInstance()
+        }
+
+        // Resolve collections.
+        // Check for direct marshaller matching
+        if (!marshaller && object instanceof Collection) {
+            marshaller = new CollectionMarshaller()
+        }
+
+        if (!marshaller && DEFAULT_MARSHALLERS[objectClass]) {
+            marshaller = DEFAULT_MARSHALLERS[objectClass].newInstance()
+        }
+
+        if (!marshaller && parentObject && marshallingContext.lastParentPropertyName && DomainClassArtefactHandler.isDomainClass(parentObject.getClass())) {
             def converter = propertyMapping?.converter
-            def customerMarshaller = propertyMapping?.customMarshaller
             // Property has converter information. Lets see how we can apply it.
             if (converter) {
                 // Property editor?
@@ -73,8 +88,6 @@ class JSONDomainFactory {
                         marshaller = new PropertyEditorMarshaller(propertyEditorClass: converter)
                     }
                 }
-            } else if (customerMarshaller && customerMarshaller instanceof Class) {
-                marshaller = customerMarshaller.newInstance()
             } else if (propertyMapping?.isDynamic()) {
                 marshaller = new DynamicValueMarshaller()
             } else if (propertyMapping?.reference) {
@@ -89,21 +102,10 @@ class JSONDomainFactory {
             }
         }
 
-        // Resolve collections.
-        // Check for direct marshaller matching
-        if (!marshaller && object instanceof Collection) {
-            marshaller = new CollectionMarshaller()
-        }
-
-        if (!marshaller && DEFAULT_MARSHALLERS[objectClass]) {
-            marshaller = DEFAULT_MARSHALLERS[objectClass].newInstance()
-        }
-
         if (!marshaller) {
-            // TODO : support user custom marshaller/converter (& marshaller registration)
             // Check for domain classes
             if (DomainClassArtefactHandler.isDomainClass(objectClass)) {
-                def propertyMapping = elasticSearchContextHolder.getMappingContext(getDomainClass(marshallingContext.peekDomainObject()))?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+                propertyMapping = elasticSearchContextHolder.getMappingContext(getDomainClass(marshallingContext.peekDomainObject()))?.getPropertyMapping(marshallingContext.lastParentPropertyName)
 
                 if (propertyMapping?.isGeoPoint()) {
                     marshaller = new GeoPointMarshaller()
