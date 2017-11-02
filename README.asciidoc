@@ -1,53 +1,45 @@
 == Elasticsearch Grails plugin
 
-An Elasticsearch plugin for Grails; This project is a fork based on the great work done by the guys at https://github.com/mstein/elasticsearch-grails-plugin.
+This is a fork of https://github.com/noamt/elasticsearch-grails-plugin.
+The goal is to make the plugin work with *elasticsearch 1.6.x* and *grails 3.3.x*.
+The releases done here are tagged with `-ub`, in order to distinguish from the original versions.
 
-=== Why would you want to fork the original Elasticsearch plugin?
 
-The original Elasticsearch plugin relies on *Hibernate-specific* GORM components, thus rendering it unusable if you back your Grails application by any other database.
+=== Documentation
 
-=== How can I obtain the plugin?
+The latest version of plugin documentation can be found at http://noamt.github.io/elasticsearch-grails-plugin/docs/index.html
 
-image:https://travis-ci.org/noamt/elasticsearch-grails-plugin.svg?branch=master["Build Status", link="https://travis-ci.org/noamt/elasticsearch-grails-plugin"]
 
-Just like any other Grails plugin, through the Grails Plugin center.
-Edit your project's +build.gradle+ file, by adding the plugin's dependency declaration:
+=== Versioning
 
-----
-dependencies {
-    ...
-    compile "org.grails.plugins:elasticsearch:1.0.0.2"
-    ...
+|===
+|Plugin Version | Grails Version | Elasticsearch Version
 
-}
-----
+|1.2.1
+|3.2.y
+|2.3.z
 
-=== Ohs Nos! I'm hitting a +java.lang.Exception: No datastore implementation specified+
+|1.2.0
+|3.1.y
+|2.3.z
 
-This error means that you probably haven't specified your datastore type in your +application.groovy+ or +application.yml+ file.
-This plugin has an auto-index feature which automatically propagates any changes made to searchable Domains into the search index;
-this is done by hooking into GORM's storage events but also requires a reference to the active datastore implementation.
-To fix, edit your project's +application.groovy+ or +application.yml+ file and add:
-application.groovy
-----
-elasticSearch {
-    ...
-    datastoreImpl = 'nameOfDatastoreBean'
-    ...
-}
-----
+|1.0.1.x-ub
+|3.3.y
+|1.6.z
 
-application.yml
-----
-elasticSearch:
-    datastoreImpl: nameOfDatastoreBean
-----
-Where the value should be the name of the datastore bean as it is configured in the Spring context; some possible values:
+|1.0.0.x
+|3.1.y
+|1.6.z
 
-MongoDB::
-    +mongoDatastore+
-Hibernate::
-    +hibernateDatastore+
+|0.1.0.x
+|2.y
+|2.1.z
+
+|0.0.4.x
+|2.y
+|1.6.z
+|===
+
 
 == License
 
