@@ -155,6 +155,11 @@ class ElasticSearchMappingFactory {
                 referencedPropertyType = "java.lang.Long"
             }
 
+            //referencedPropertyType received null if the propType is dateTime
+            if (referencedPropertyType == null && propType == 'dateTime') {
+                referencedPropertyType = "org.joda.time.DateTime"
+            }
+
             if (Collection.isAssignableFrom(referencedPropertyType) || referencedPropertyType.isArray()) {
                 //Handle collections explictly mapped (needed for dealing with transients)
                 if (scpm.grailsProperty.domainClass.associationMap[scpm.grailsProperty.name]) {
