@@ -20,17 +20,15 @@ plugins {
 version "1.0.0.4-ub"
 group "org.grails.plugins"
 
-apply plugin: 'maven-publish'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: "org.grails.grails-plugin"
-apply plugin:"org.grails.grails-plugin-publish"
+apply plugin: "org.grails.grails-plugin-publish"
 apply plugin: "org.grails.grails-gsp"
 
 ext {
     grailsVersion = project.grailsVersion
     gradleWrapperVersion = project.gradleWrapperVersion
-	elasticsearchVersion = "1.0.0.2-ub"
 }
 
 sourceCompatibility = 1.7
@@ -63,11 +61,12 @@ dependencies {
     provided "org.grails:grails-dependencies"
 
     compile "org.grails:grails-core"
-    compile "org.grails.plugins:hibernate4"
+    compile "org.grails.plugins:hibernate5:6.1.6"
     compile "org.grails.plugins:cache"
     compile "org.hibernate:hibernate-ehcache"
 
-    testRuntime('org.elasticsearch:elasticsearch-groovy:1.6.0') {
+    compile "org.elasticsearch:elasticsearch:1.5.2"
+    compile('org.elasticsearch:elasticsearch-groovy:1.5.2') {
         exclude module: 'groovy-all'
     }
     compile "org.elasticsearch:elasticsearch-mapper-attachments:2.6.0"
@@ -96,6 +95,6 @@ task cleanDataDir(type: Delete) {
     delete fileTree(dir: 'data')
 }
 
-apply from: "gradle/documentation.gradle"
+//apply from: "gradle/documentation.gradle"
 
 apply from: "gradle/publish.gradle"
