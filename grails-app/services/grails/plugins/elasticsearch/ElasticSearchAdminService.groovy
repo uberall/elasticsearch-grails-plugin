@@ -19,8 +19,6 @@ import java.util.regex.Matcher
 
 class ElasticSearchAdminService {
 
-    static transactional = false
-
     static final Logger LOG = LoggerFactory.getLogger(this)
 
     ElasticSearchHelper elasticSearchHelper

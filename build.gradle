@@ -17,12 +17,12 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.2"
+    id "com.jfrog.bintray" version "1.7"
     id 'com.jfrog.artifactory' version '4.0.0'
     id "de.undercouch.download" version "3.2.0"
 }
 
-version "1.4.1"
+version "1.4.2-ub"
 group "org.grails.plugins"
 
 apply plugin: 'maven-publish'
@@ -35,7 +35,7 @@ apply plugin: "org.grails.grails-gsp"
 ext {
     grailsVersion = project.grailsVersion
     gradleWrapperVersion = project.gradleWrapperVersion
-    elasticsearchVersion = "5.3.3"
+    elasticsearchVersion = "5.4.3"
 }
 
 sourceCompatibility = 1.7
@@ -69,7 +69,7 @@ sourcesJar {
     exclude "test/**/**"
 }
 
-def elasticsearchVersion = '5.4.1'
+def elasticsearchVersion = '5.4.3'
 
 dependencies {
     provided 'org.springframework.boot:spring-boot-starter-logging'
@@ -151,7 +151,3 @@ task cleanDataDir(type: Delete) {
 apply from: "gradle/documentation.gradle"
 
 apply from: "gradle/publish.gradle"
-
-
-
-
