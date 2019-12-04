@@ -151,6 +151,11 @@ class AuditEventListener extends AbstractPersistenceEventListener {
             return
         }
 
+        // don't delete the root if just the child got deleted
+        if (!elasticSearchContextHolder.isRootClass(entity.class)) {
+            return
+        }
+
         Set roots = getRootIndexedEntity(entity)
         roots?.each { pushToDelete(it) }
     }
