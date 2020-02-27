@@ -17,6 +17,7 @@
 package grails.plugins.elasticsearch.conversion
 
 import grails.core.GrailsApplication
+import grails.core.GrailsDomainClass
 import grails.plugins.elasticsearch.ElasticSearchContextHolder
 import grails.plugins.elasticsearch.conversion.marshall.*
 import grails.plugins.elasticsearch.mapping.DomainEntity
@@ -24,6 +25,7 @@ import grails.plugins.elasticsearch.mapping.DomainReflectionService
 import grails.plugins.elasticsearch.mapping.SearchableClassMapping
 import grails.plugins.elasticsearch.unwrap.DomainClassUnWrapperChain
 import org.elasticsearch.common.xcontent.XContentBuilder
+import org.grails.core.artefact.DomainClassArtefactHandler
 
 import java.beans.PropertyEditor
 
@@ -62,9 +64,18 @@ class JSONDomainFactory {
         Object unwrappedObject = domainClassUnWrapperChain.unwrap(object)
         Class<?> objectClass = unwrappedObject.getClass()
 
+        def parentObject = marshallingContext.peekDomainObject()
+        DomainEntity domainEntity = getUnwrappedInstanceDomainClass(parentObject)
+        def propertyMapping = elasticSearchContextHolder.getMappingContext(domainEntity)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+        def customMarshaller = propertyMapping?.customMarshaller
+
+        if (customMarshaller && customMarshaller instanceof Class) {
+            marshaller = customMarshaller.newInstance() as DefaultMarshaller
+        }
+
         // Resolve collections.
         // Check for direct marshaller matching
-        if (unwrappedObject instanceof Collection) {
+        if (!marshaller && unwrappedObject instanceof Collection) {
             marshaller = new CollectionMarshaller()
         }
 
@@ -72,41 +83,37 @@ class JSONDomainFactory {
             marshaller = DEFAULT_MARSHALLERS[objectClass].newInstance()
         }
 
-        if (!marshaller) {
+        if (!marshaller && parentObject && marshallingContext.lastParentPropertyName && isDomainClass(parentObject.class)) {
             // Check if we arrived from searchable domain class.
-            Object parentObject = marshallingContext.peekDomainObject()
-            if (parentObject && marshallingContext.lastParentPropertyName && isDomainClass(parentObject.class)) {
-                DomainEntity domainClass = getUnwrappedInstanceDomainClass(parentObject)
-                def propertyMapping = elasticSearchContextHolder.getMappingContext(domainClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
-                def converter = propertyMapping?.converter
-                // Property has converter information. Lets see how we can apply it.
-                if (converter) {
-                    // Property editor?
-                    if (converter instanceof Class) {
-                        if (PropertyEditor.isAssignableFrom(converter)) {
-                            marshaller = new PropertyEditorMarshaller(propertyEditorClass: converter)
-                        }
-                    }
-                } else if (propertyMapping?.isDynamic()) {
-                    marshaller = new DynamicValueMarshaller()
-                } else if (propertyMapping?.reference) {
-                    def refClass = propertyMapping.getBestGuessReferenceType()
-                    marshaller = new SearchableReferenceMarshaller(refClass: refClass)
-                } else if (propertyMapping?.component) {
-                    if (propertyMapping?.isGeoPoint()) {
-                        marshaller = new GeoPointMarshaller()
-                    } else {
-                        marshaller = new DeepDomainClassMarshaller()
+            def converter = propertyMapping?.converter
+            // Property has converter information. Lets see how we can apply it.
+            if (converter) {
+                // Property editor?
+                if (converter instanceof Class) {
+                    if (PropertyEditor.isAssignableFrom(converter)) {
+                        marshaller = new PropertyEditorMarshaller(propertyEditorClass: converter)
                     }
                 }
+            } else if (propertyMapping?.isDynamic()) {
+                marshaller = new DynamicValueMarshaller()
+            } else if (propertyMapping?.reference) {
+                def refClass = propertyMapping.getBestGuessReferenceType()
+                marshaller = new SearchableReferenceMarshaller(refClass: refClass)
+            } else if (propertyMapping?.component) {
+                if (propertyMapping?.isGeoPoint()) {
+                    marshaller = new GeoPointMarshaller()
+                } else {
+                    marshaller = new DeepDomainClassMarshaller()
+                }
             }
+
         }
 
         if (!marshaller) {
             // TODO : support user custom marshaller/converter (& marshaller registration)
             // Check for domain classes
             if (isDomainClass(objectClass)) {
-                def propertyMapping = elasticSearchContextHolder.getMappingContext(getUnwrappedInstanceDomainClass(marshallingContext.peekDomainObject()))?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+                propertyMapping = elasticSearchContextHolder.getMappingContext(getUnwrappedInstanceDomainClass(marshallingContext.peekDomainObject()))?.getPropertyMapping(marshallingContext.lastParentPropertyName)
 
                 if (propertyMapping?.isGeoPoint()) {
                     marshaller = new GeoPointMarshaller()
